@@ -4163,7 +4163,7 @@ mod tests {
     #[tokio::test]
     async fn master_key_encrypts_sensitive_database_fields_and_reads_them_back() {
         let (mut database, _) = Database::open(":memory:").await.unwrap();
-        database.secrets = SecretCipher::from_test_key([11_u8; 32]);
+        database.secrets = SecretCipher::for_tests();
         database
             .save_smtp_settings(
                 "admin",
@@ -4351,7 +4351,7 @@ mod tests {
     #[tokio::test]
     async fn username_change_and_password_reset_follow_the_renamed_initial_admin() {
         let (mut database, credentials) = Database::open(":memory:").await.unwrap();
-        database.secrets = SecretCipher::from_test_key([19_u8; 32]);
+        database.secrets = SecretCipher::for_tests();
         let credentials = credentials.unwrap();
         let mut config = Config::default();
         config.webauthn.break_glass_username = credentials.username.clone();
@@ -4460,7 +4460,7 @@ mod tests {
     #[tokio::test]
     async fn username_change_preserves_encrypted_config_for_an_unrelated_break_glass_admin() {
         let (mut database, credentials) = Database::open(":memory:").await.unwrap();
-        database.secrets = SecretCipher::from_test_key([23_u8; 32]);
+        database.secrets = SecretCipher::for_tests();
         let credentials = credentials.unwrap();
         let mut config = Config::default();
         config.webauthn.break_glass_username = "separate-break-glass".to_string();

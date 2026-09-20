@@ -1,10 +1,10 @@
 use anyhow::Context;
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use chacha20poly1305::{
-    aead::{Aead, KeyInit, Payload},
+    aead::{Aead, AeadCore, KeyInit, Payload},
     Key, XChaCha20Poly1305, XNonce,
 };
-use rand::{rngs::OsRng, RngCore};
+use rand::rngs::OsRng;
 
 const PREFIX: &str = "enc:v1:";
 const NONCE_LEN: usize = 24;
@@ -33,9 +33,10 @@ impl SecretCipher {
     }
 
     #[cfg(test)]
-    pub(crate) fn from_test_key(key: [u8; 32]) -> Self {
+    pub(crate) fn for_tests() -> Self {
+        let key = XChaCha20Poly1305::generate_key(&mut OsRng);
         Self {
-            cipher: Some(XChaCha20Poly1305::new(Key::from_slice(&key))),
+            cipher: Some(XChaCha20Poly1305::new(&key)),
         }
     }
 
@@ -50,14 +51,13 @@ impl SecretCipher {
         if self.cipher.is_none() {
             return Ok(value.to_string());
         }
-        let mut nonce = [0_u8; NONCE_LEN];
-        OsRng.fill_bytes(&mut nonce);
+        let nonce = XChaCha20Poly1305::generate_nonce(&mut OsRng);
         let ciphertext = self
             .cipher
             .as_ref()
             .expect("checked cipher presence")
             .encrypt(
-                XNonce::from_slice(&nonce),
+                &nonce,
                 Payload {
                     msg: value.as_bytes(),
                     aad: context.as_bytes(),
@@ -134,9 +134,7 @@ mod tests {
     use super::*;
 
     fn cipher() -> SecretCipher {
-        SecretCipher {
-            cipher: Some(XChaCha20Poly1305::new(Key::from_slice(&[7_u8; 32]))),
-        }
+        SecretCipher::for_tests()
     }
 
     #[test]
